@@ -76,3 +76,29 @@ def sign_in_view(request):
             return JsonResponse({'success': False, 'error': str(e)})
 
     return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+
+
+#notification 
+from .models import Post, User
+from .utilities import create_notification
+
+def like_post_view(request, post_id):
+    user = request.user  # Assuming the user is authenticated
+    post = Post.objects.get(id=post_id)
+
+    create_notification(recipient=post.author, sender=user, notification_type=Notification.LIKE, post=post)
+
+    return JsonResponse({'success': True})
+
+
+
+
+def get_notifications_view(request):
+    notifications = Notification.objects.filter(recipient=request.user, is_read=False).order_by('-created_at')
+    notifications_data = [{'id': n.id, 'type': n.notification_type, 'message': n.message_preview} for n in notifications]
+    return JsonResponse({'notifications': notifications_data})
+
+def mark_notification_as_read(request, notification_id):
+    Notification.objects.filter(id=notification_id, recipient=request.user).update(is_read=True)
+    return JsonResponse({'success': True})
